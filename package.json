@@ -1,6 +1,6 @@
 {
   "name": "test-package-abcd",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,6 +18,14 @@
   },
   "homepage": "https://github.com/manotien/test-package#readme",
   "devDependencies": {
+    "@types/prop-types": "^15.7.5",
+    "@types/react": "^18.0.26",
     "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "@chatscope/use-chat": "^3.1.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "socket.io-client": "^4.5.4"
   }
 }
