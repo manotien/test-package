@@ -97,9 +97,9 @@ export class ChatService implements IChatService {
     if (conversation) {
       const customer = this.storage!.getUser(customerId)[0]!;
       conversation.data = {
+        ...conversation.data,
         lastMessage: message.content,
         lastSenderName: customer.firstName,
-        ...conversation.data,
       };
       this.storage?.updateConversation(conversation);
     }
@@ -130,9 +130,9 @@ export class ChatService implements IChatService {
     if (currentConversation) {
       const user = this.storage!.getState().currentUser;
       currentConversation.data = {
+        ...currentConversation.data,
         lastMessage: message.content,
         lastSenderName: user!.firstName,
-        ...currentConversation.data,
       };
       this.storage?.updateConversation(currentConversation);
     }
