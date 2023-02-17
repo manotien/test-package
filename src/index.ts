@@ -11,7 +11,6 @@ export * from "@chatscope/use-chat/dist/Types";
 export * from "@chatscope/use-chat/dist/TypingUser";
 export * from "@chatscope/use-chat/dist/TypingUsersList";
 export * from "@chatscope/use-chat/dist/User";
-export * from "./socket";
 export * from "./ChatProvider";
 export * from "./ChatService";
 export * from "./ChatStorage";

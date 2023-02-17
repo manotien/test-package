@@ -7,30 +7,39 @@ import {
   IChatService,
   ChatEventType,
   MessageContentType,
-  MessageDirection,
   ChatEventHandler,
   SendMessageServiceParams,
   UpdateState,
-  MessageStatus,
   ChatMessage,
 } from "@chatscope/use-chat";
-import { socket } from "./socket";
 
 const randomId = () => Math.floor(Math.random() * 10 ** 8).toString();
 
 type EventHandlers = {
-  onMessage: ChatEventHandler<ChatEventType.Message, ChatEvent<ChatEventType.Message>>;
+  onMessage: ChatEventHandler<
+    ChatEventType.Message,
+    ChatEvent<ChatEventType.Message>
+  >;
   onConnectionStateChanged: ChatEventHandler<
     ChatEventType.ConnectionStateChanged,
     ChatEvent<ChatEventType.ConnectionStateChanged>
   >;
-  onUserConnected: ChatEventHandler<ChatEventType.UserConnected, ChatEvent<ChatEventType.UserConnected>>;
-  onUserDisconnected: ChatEventHandler<ChatEventType.UserDisconnected, ChatEvent<ChatEventType.UserDisconnected>>;
+  onUserConnected: ChatEventHandler<
+    ChatEventType.UserConnected,
+    ChatEvent<ChatEventType.UserConnected>
+  >;
+  onUserDisconnected: ChatEventHandler<
+    ChatEventType.UserDisconnected,
+    ChatEvent<ChatEventType.UserDisconnected>
+  >;
   onUserPresenceChanged: ChatEventHandler<
     ChatEventType.UserPresenceChanged,
     ChatEvent<ChatEventType.UserPresenceChanged>
   >;
-  onUserTyping: ChatEventHandler<ChatEventType.UserTyping, ChatEvent<ChatEventType.UserTyping>>;
+  onUserTyping: ChatEventHandler<
+    ChatEventType.UserTyping,
+    ChatEvent<ChatEventType.UserTyping>
+  >;
   [key: string]: any;
 };
 export class ChatService implements IChatService {
@@ -49,31 +58,6 @@ export class ChatService implements IChatService {
   constructor(storage: IStorage, update: UpdateState) {
     this.storage = storage;
     this.updateState = update;
-
-    const isListened = socket?.hasListeners("serverToClient");
-    if (socket && !isListened) {
-      socket.on("serverToClient", (data: any) => {
-        const payload = {
-          message: {
-            id: randomId(),
-            status: MessageStatus.DeliveredToCloud,
-            contentType: MessageContentType.TextHtml,
-            senderId: data.customerId,
-            direction: MessageDirection.Incoming,
-            content: data.message,
-            createdTime: new Date(),
-          },
-          conversationId: data.conversationId,
-          customerId: data.customerId,
-        };
-
-        // TODO: fix this.eventHandlers.onMessage function to callable
-        // this.eventHandlers.onMessage(new MessageEvent(payload));
-
-        this.onMessage(payload);
-        // notify(data.message);
-      });
-    }
   }
 
   // work around function to fix onMessage is not set properly when use with socket.on
@@ -90,7 +74,10 @@ export class ChatService implements IChatService {
     const [conversation] = this.storage!.getConversation(conversationId);
     // Increment unread counter
     const { activeConversation } = this.storage!.getState();
-    if (conversation && (!activeConversation || activeConversation.id !== conversationId)) {
+    if (
+      conversation &&
+      (!activeConversation || activeConversation.id !== conversationId)
+    ) {
       this.storage!.setUnread(conversationId, conversation.unreadCounter + 1);
     }
     // Update last message
@@ -117,15 +104,9 @@ export class ChatService implements IChatService {
     const user = this.storage!.getState().currentUser;
     const agent_id = user?.id;
     const room_id = currentConversation.id;
-    const customer = this.storage!.getUser(currentConversation.participants[0]!.id)[0]!;
-
-    socket?.emit(
-      "clientToServer",
-      { message: message.content, agent_id, room_id, line_uid: customer.data.lineUid },
-      (response: any) => {
-        console.log("server response:", response);
-      }
-    );
+    const customer = this.storage!.getUser(
+      currentConversation.participants[0]!.id
+    )[0]!;
 
     if (currentConversation) {
       const user = this.storage!.getState().currentUser;
@@ -147,7 +128,10 @@ export class ChatService implements IChatService {
   // because the provider must know that the new message arrived.
   // Here you need to implement callback registration in your service.
   // You can do it in any way you like. It's important that you will have access to it elsewhere in the service.
-  on<T extends ChatEventType, H extends ChatEvent<T>>(evtType: T, evtHandler: ChatEventHandler<T, H>) {
+  on<T extends ChatEventType, H extends ChatEvent<T>>(
+    evtType: T,
+    evtHandler: ChatEventHandler<T, H>
+  ) {
     const key = `on${evtType.charAt(0).toUpperCase()}${evtType.substring(1)}`;
     if (key in this.eventHandlers) {
       (this.eventHandlers as any)[key] = evtHandler;
@@ -156,7 +140,10 @@ export class ChatService implements IChatService {
 
   // The ChatProvider can unregister the callback.
   // In this case remove it from your service to keep it clean.
-  off<T extends ChatEventType, H extends ChatEvent<T>>(evtType: T, eventHandler: ChatEventHandler<T, H>) {
+  off<T extends ChatEventType, H extends ChatEvent<T>>(
+    evtType: T,
+    eventHandler: ChatEventHandler<T, H>
+  ) {
     const key = `on${evtType.charAt(0).toUpperCase()}${evtType.substring(1)}`;
     if (key in this.eventHandlers) {
       (this.eventHandlers as any)[key] = () => {};
