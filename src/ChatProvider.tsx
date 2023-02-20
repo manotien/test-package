@@ -422,12 +422,18 @@ export const ChatProvider = <S extends IChatService>({
         storage.setCurrentMessage("");
       }
 
-      updateState();
+      const user = storage.getState().currentUser;
+      const conversation = storage.getConversation(conversationId);
+      const currentConversation = conversation[0]!;
 
-      serviceRef.current.sendMessage({
-        message: storedMessage,
-        conversationId,
-      });
+      currentConversation.data = {
+        ...currentConversation.data,
+        lastMessage: storedMessage.content,
+        lastSenderName: user!.firstName,
+      };
+      storage.updateConversation(currentConversation);
+
+      updateState();
     },
     [storage, updateState, serviceRef]
   );

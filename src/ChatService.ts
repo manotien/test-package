@@ -60,65 +60,9 @@ export class ChatService implements IChatService {
     this.updateState = update;
   }
 
-  // work around function to fix onMessage is not set properly when use with socket.on
-  onMessage({
-    message,
-    conversationId,
-    customerId,
-  }: {
-    message: ChatMessage<MessageContentType>;
-    conversationId: string;
-    customerId: string;
-  }) {
-    this.storage!.addMessage(message, conversationId, false);
-    const [conversation] = this.storage!.getConversation(conversationId);
-    // Increment unread counter
-    const { activeConversation } = this.storage!.getState();
-    if (
-      conversation &&
-      (!activeConversation || activeConversation.id !== conversationId)
-    ) {
-      this.storage!.setUnread(conversationId, conversation.unreadCounter + 1);
-    }
-    // Update last message
-    if (conversation) {
-      const customer = this.storage!.getUser(customerId)[0]!;
-      conversation.data = {
-        ...conversation.data,
-        lastMessage: message.content,
-        lastSenderName: customer.firstName,
-      };
-      this.storage?.updateConversation(conversation);
-    }
-    // Reset typing
-    if (conversation) {
-      conversation.removeTypingUser(message.senderId);
-    }
-    this.updateState();
-  }
+  onMessage() {}
 
-  sendMessage(data: SendMessageServiceParams) {
-    const { conversationId, message } = data;
-    const conversation = this.storage!.getConversation(conversationId);
-    const currentConversation = conversation[0]!;
-    const user = this.storage!.getState().currentUser;
-    const agent_id = user?.id;
-    const room_id = currentConversation.id;
-    const customer = this.storage!.getUser(
-      currentConversation.participants[0]!.id
-    )[0]!;
-
-    if (currentConversation) {
-      const user = this.storage!.getState().currentUser;
-      currentConversation.data = {
-        ...currentConversation.data,
-        lastMessage: message.content,
-        lastSenderName: user!.firstName,
-      };
-      this.storage?.updateConversation(currentConversation);
-    }
-    return message;
-  }
+  sendMessage() {}
 
   sendTyping() {}
 
