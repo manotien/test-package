@@ -13,7 +13,9 @@ import {
 } from "@chatscope/use-chat";
 import { MessageGroup } from "@chatscope/use-chat/dist/MessageGroup";
 
-export type MessageIdGenerator = (message: ChatMessage<MessageContentType>) => string;
+export type MessageIdGenerator = (
+  message: ChatMessage<MessageContentType>
+) => string;
 export type GroupIdGenerator = () => string;
 
 export interface BasicStorageParams {
@@ -21,16 +23,24 @@ export interface BasicStorageParams {
   messageIdGenerator?: MessageIdGenerator;
 }
 
-export interface IStorage<ConversationData = any, UserData = any> extends _IStorage {
+export interface IStorage<ConversationData = any, UserData = any>
+  extends _IStorage {
   addMessage: (
     message: ChatMessage<MessageContentType>,
     conversationId: ConversationId,
     generateId: boolean,
     addToTop?: boolean
   ) => ChatMessage<MessageContentType>;
+  onReceiveMessage: (
+    message: ChatMessage<MessageContentType>,
+    conversationId: string,
+    customerId: string
+  ) => void;
 }
 
-export class ChatStorage<ConversationData = any> implements IStorage<ConversationData> {
+export class ChatStorage<ConversationData = any>
+  implements IStorage<ConversationData>
+{
   private readonly _groupIdGenerator: GroupIdGenerator;
   private readonly _messageIdGenerator?: MessageIdGenerator;
 
@@ -150,7 +160,9 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
    * @param conversationId
    * @return [Conversation, number]|[undefined, undefined]
    */
-  getConversation(conversationId: ConversationId): [Conversation<ConversationData>, number] | [undefined, undefined] {
+  getConversation(
+    conversationId: ConversationId
+  ): [Conversation<ConversationData>, number] | [undefined, undefined] {
     const idx = this.conversations.findIndex((c) => c.id === conversationId);
 
     if (idx !== -1) {
@@ -193,11 +205,16 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
    * @param conversationId
    * @param removeMessages
    */
-  removeConversation(conversationId: ConversationId, removeMessages = true): boolean {
+  removeConversation(
+    conversationId: ConversationId,
+    removeMessages = true
+  ): boolean {
     const idx = this.conversations.findIndex((c) => c.id === conversationId);
 
     if (idx !== -1) {
-      this.conversations = this.conversations.slice(0, idx).concat(this.conversations.slice(idx + 1));
+      this.conversations = this.conversations
+        .slice(0, idx)
+        .concat(this.conversations.slice(idx + 1));
 
       if (removeMessages) {
         delete this.messages[conversationId];
@@ -220,7 +237,10 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
     }
   }
 
-  private replaceConversation(conversation: Conversation<ConversationData>, idx: number) {
+  private replaceConversation(
+    conversation: Conversation<ConversationData>,
+    idx: number
+  ) {
     this.conversations = this.conversations
       .slice(0, idx)
       .concat(
@@ -252,7 +272,10 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
    * @param participant
    * @return boolean
    */
-  addParticipant(conversationId: ConversationId, participant: Participant): boolean {
+  addParticipant(
+    conversationId: ConversationId,
+    participant: Participant
+  ): boolean {
     const [conversation, idx] = this.getConversation(conversationId);
 
     if (conversation) {
@@ -270,7 +293,10 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
    * @param conversationId
    * @param participantId
    */
-  removeParticipant(conversationId: ConversationId, participantId: UserId): boolean {
+  removeParticipant(
+    conversationId: ConversationId,
+    participantId: UserId
+  ): boolean {
     const [conversation, idx] = this.getConversation(conversationId);
 
     if (conversation) {
@@ -318,7 +344,9 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
     const newMessage = this.getMessageWithId(message, generateId);
     group.messages.unshift(newMessage);
     this.messages[conversationId] =
-      conversationId in this.messages ? [group, ...this.messages[conversationId]] : [group];
+      conversationId in this.messages
+        ? [group, ...this.messages[conversationId]]
+        : [group];
     return newMessage;
   }
 
@@ -345,7 +373,9 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
     const newMessage = this.getMessageWithId(message, generateId);
     group.addMessage(newMessage);
     this.messages[conversationId] =
-      conversationId in this.messages ? this.messages[conversationId].concat(group) : [group];
+      conversationId in this.messages
+        ? this.messages[conversationId].concat(group)
+        : [group];
     return newMessage;
   }
 
@@ -391,7 +421,9 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
    */
   setDraft(draft: string): void {
     if (this.activeConversationId) {
-      const [activeConversation, idx] = this.getConversation(this.activeConversationId);
+      const [activeConversation, idx] = this.getConversation(
+        this.activeConversationId
+      );
 
       if (activeConversation) {
         activeConversation.draft = draft;
@@ -435,7 +467,10 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
    * @param conversationId
    * @param resetUnreadCounter
    */
-  setActiveConversation(conversationId?: ConversationId, resetUnreadCounter = true): void {
+  setActiveConversation(
+    conversationId?: ConversationId,
+    resetUnreadCounter = true
+  ): void {
     this.activeConversationId = conversationId;
 
     if (resetUnreadCounter && conversationId) {
@@ -461,5 +496,45 @@ export class ChatStorage<ConversationData = any> implements IStorage<Conversatio
    */
   removeMessagesFromConversation(conversationId: ConversationId) {
     delete this.messages[conversationId];
+  }
+
+  /**
+   * On receive message from socket
+   * @param message
+   * @param conversationId
+   * @param customerId
+   */
+  onReceiveMessage(
+    message: ChatMessage<MessageContentType>,
+    conversationId: string,
+    customerId: string
+  ) {
+    this.addMessage(message, conversationId, false);
+    const [conversation] = this.getConversation(conversationId);
+    // Increment unread counter
+    const { activeConversation } = this.getState();
+    if (
+      conversation &&
+      (!activeConversation || activeConversation.id !== conversationId)
+    ) {
+      this.setUnread(conversationId, conversation.unreadCounter + 1);
+    }
+    // Update last message
+    if (conversation) {
+      const customer = this.getUser(customerId)[0]!;
+      const newConversation: any = {
+        ...conversation,
+        data: {
+          ...conversation.data,
+          lastMessage: message.content,
+          lastSenderName: customer.firstName,
+        },
+      };
+      this.updateConversation(newConversation);
+    }
+    // Reset typing
+    if (conversation) {
+      conversation.removeTypingUser(message.senderId);
+    }
   }
 }

@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import PropTypes from "prop-types";
 
@@ -55,7 +62,10 @@ type ChatContextProps = ChatState & {
   setDraft: (message: string) => void;
   sendTyping: (params: SendTypingParams) => void;
   addConversation: (conversation: Conversation) => void;
-  removeConversation: (conversationId: ConversationId, removeMessages: boolean | undefined) => boolean;
+  removeConversation: (
+    conversationId: ConversationId,
+    removeMessages: boolean | undefined
+  ) => boolean;
   getConversation: (conversationId: ConversationId) => Conversation | undefined;
   updateState: () => void;
   setCurrentMessage: (message: string) => void;
@@ -63,6 +73,11 @@ type ChatContextProps = ChatState & {
   service: IChatService;
   storage: IStorage;
   removeMessagesFromConversation: (conversationId: ConversationId) => void;
+  onReceiveMessage: (
+    message: ChatMessage<MessageContentType>,
+    conversationId: string,
+    customerId: string
+  ) => void;
 };
 
 // Experimental
@@ -84,7 +99,9 @@ type ChatContextPropsTyped<S extends IChatService> =
       setDraft: (message: string) => void;
       sendTyping: (params: SendTypingParams) => void;
       addConversation: (conversation: Conversation) => void;
-      getConversation: (conversationId: ConversationId) => Conversation | undefined;
+      getConversation: (
+        conversationId: ConversationId
+      ) => Conversation | undefined;
       resetState: () => void;
       service: S;
     })
@@ -111,7 +128,8 @@ type ChatContextPropsTyped<S extends IChatService> =
 });*/
 
 // It can be used to create context in userSpace
-const createChatContext = <S extends IChatService>() => createContext<ChatContextPropsTyped<S>>(undefined);
+const createChatContext = <S extends IChatService>() =>
+  createContext<ChatContextPropsTyped<S>>(undefined);
 
 const ChatContext = createContext<ChatContextProps | undefined>(undefined);
 
@@ -139,13 +157,20 @@ const useStorage = (
   storage: IStorage,
   service: IChatService,
   setter: (state: ChatState) => void,
-  { debounceTyping = true, typingDebounceTime = 900 }: { debounceTyping: boolean; typingDebounceTime: number }
+  {
+    debounceTyping = true,
+    typingDebounceTime = 900,
+  }: { debounceTyping: boolean; typingDebounceTime: number }
 ) => {
   const updateState = useCallback(() => {
     setter(storage.getState());
   }, [setter, storage]);
 
-  const debouncedTyping = useDebounceTyping(typingDebounceTime, updateState, storage);
+  const debouncedTyping = useDebounceTyping(
+    typingDebounceTime,
+    updateState,
+    storage
+  );
 
   // Register event handlers
   useEffect(() => {
@@ -157,7 +182,10 @@ const useStorage = (
       // Increment unread counter
       const { activeConversation } = storage.getState();
 
-      if (conversation && (!activeConversation || activeConversation.id !== conversationId)) {
+      if (
+        conversation &&
+        (!activeConversation || activeConversation.id !== conversationId)
+      ) {
         storage.setUnread(conversationId, conversation.unreadCounter + 1);
       }
 
@@ -172,11 +200,19 @@ const useStorage = (
     const onConnectionStateChanged = () => {};
     const onUserConnected = () => {};
     const onUserDisconnected = () => {};
-    const onUserPresenceChanged = ({ userId, presence }: UserPresenceChangedEvent) => {
+    const onUserPresenceChanged = ({
+      userId,
+      presence,
+    }: UserPresenceChangedEvent) => {
       storage.setPresence(userId, presence);
     };
 
-    const onUserTyping = ({ conversationId, userId, content, isTyping }: UserTypingEvent) => {
+    const onUserTyping = ({
+      conversationId,
+      userId,
+      content,
+      isTyping,
+    }: UserTypingEvent) => {
       const [conversation] = storage.getConversation(conversationId);
 
       if (conversation) {
@@ -206,7 +242,10 @@ const useStorage = (
     return () => {
       service.off(ChatEventType.Message, onMessage);
 
-      service.off(ChatEventType.ConnectionStateChanged, onConnectionStateChanged);
+      service.off(
+        ChatEventType.ConnectionStateChanged,
+        onConnectionStateChanged
+      );
 
       service.off(ChatEventType.UserConnected, onUserConnected);
 
@@ -283,7 +322,10 @@ export const ChatProvider = <S extends IChatService>({
     typingDebounceTime,
   });
 
-  const throttledSendTyping = useThrottledSendTyping(serviceRef.current, typingThrottleTime);
+  const throttledSendTyping = useThrottledSendTyping(
+    serviceRef.current,
+    typingThrottleTime
+  );
 
   const setCurrentUser = useCallback(
     (user: User): void => {
@@ -315,7 +357,10 @@ export const ChatProvider = <S extends IChatService>({
    * Get user by id
    * @param userId
    */
-  const getUser = useCallback((userId: UserId) => storage.getUser(userId)[0], [storage]);
+  const getUser = useCallback(
+    (userId: UserId) => storage.getUser(userId)[0],
+    [storage]
+  );
 
   /**
    * Set active conversation
@@ -351,7 +396,8 @@ export const ChatProvider = <S extends IChatService>({
   );
 
   const getConversation = useCallback(
-    (conversationId: ConversationId) => storage.getConversation(conversationId)[0],
+    (conversationId: ConversationId) =>
+      storage.getConversation(conversationId)[0],
     [storage]
   );
 
@@ -366,7 +412,11 @@ export const ChatProvider = <S extends IChatService>({
       generateId = storage.messageIdGenerator ? true : false,
       clearMessageInput = true,
     }: SendMessageParams) => {
-      const storedMessage = storage.addMessage(message, conversationId, generateId);
+      const storedMessage = storage.addMessage(
+        message,
+        conversationId,
+        generateId
+      );
 
       if (clearMessageInput) {
         storage.setCurrentMessage("");
@@ -444,7 +494,10 @@ export const ChatProvider = <S extends IChatService>({
    * @param conversationId
    */
   const removeConversation = useCallback(
-    (conversationId: ConversationId, removeMessages: boolean | undefined = true) => {
+    (
+      conversationId: ConversationId,
+      removeMessages: boolean | undefined = true
+    ) => {
       const result = storage.removeConversation(conversationId, removeMessages);
       updateState();
       return result;
@@ -506,12 +559,31 @@ export const ChatProvider = <S extends IChatService>({
     [storage, updateState]
   );
 
+  /**
+   * On receive message from socket
+   * @param message
+   * @param conversationId
+   * @param customerId
+   */
+  const onReceiveMessage = useCallback(
+    (
+      message: ChatMessage<MessageContentType>,
+      conversationId: string,
+      customerId: string
+    ) => {
+      storage.onReceiveMessage(message, conversationId, customerId);
+      updateState();
+    },
+    [storage, updateState]
+  );
+
   return (
     <ChatContext.Provider
       value={{
         ...state,
         currentMessages:
-          state.activeConversation && state.activeConversation.id in state.messages
+          state.activeConversation &&
+          state.activeConversation.id in state.messages
             ? state.messages[state.activeConversation.id]
             : [],
         storage,
@@ -533,6 +605,7 @@ export const ChatProvider = <S extends IChatService>({
         updateState,
         service: serviceRef.current,
         removeMessagesFromConversation,
+        onReceiveMessage,
       }}
     >
       {children}
